@@ -138,8 +138,11 @@ app.post('/check-tickets', async (req, res) => {
 
 // 📡 Temporary route to log Telegram group chat ID
 app.post(`/telegram/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
+  console.log('📦 Telegram webhook raw body:', JSON.stringify(req.body, null, 2));
+
   const chatId = req.body?.message?.chat?.id;
   console.log('💬 Group chat ID:', chatId);
+
   res.sendStatus(200);
 });
 
