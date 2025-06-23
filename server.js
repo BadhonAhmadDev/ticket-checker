@@ -136,6 +136,15 @@ app.post('/check-tickets', async (req, res) => {
   }
 });
 
+// 📡 Temporary route to log Telegram group chat ID
+app.post(`/telegram/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
+  const chatId = req.body?.message?.chat?.id;
+  console.log('💬 Group chat ID:', chatId);
+  res.sendStatus(200);
+});
+
+
+
 // Start the server
 app.listen(port, () => {
   console.log(chalk.green(`🚀 Server running at http://localhost:${port}`));
