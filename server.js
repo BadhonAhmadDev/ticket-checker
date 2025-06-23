@@ -15,14 +15,30 @@ const port = 3000;
 // Path helpers
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const audioFilePath = path.join(__dirname, 'audio.mp3'); // Must be here
+const audioFilePath = path.join(__dirname, 'audio.mp3');
+
+// Telegram config
+const TELEGRAM_BOT_TOKEN = '7909147905:AAH9-pbLUfkTf-YYNj9peiFEvAbeWAAFPro';
+const TELEGRAM_CHAT_ID = '5440260132';
+
+async function sendTelegramMessage(text) {
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  try {
+    await axios.post(url, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: text,
+    });
+  } catch (error) {
+    console.error('❌ Failed to send Telegram message:', error.message);
+  }
+}
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🎵 Secure route to serve audio (not publicly exposed)
+// 🎵 Secure route to serve audio
 app.get('/alert-audio', (req, res) => {
   console.log('📡 Incoming request for audio:', audioFilePath);
   if (!fs.existsSync(audioFilePath)) {
@@ -103,6 +119,14 @@ app.post('/check-tickets', async (req, res) => {
           }
         }
       }
+    }
+
+    // ✅ Send Telegram message if tickets found
+    if (output.length > 0) {
+      const message = `🎫 Tickets found for ${visitDate} at times: ${output
+        .map(s => s.time)
+        .join(', ')}`;
+      await sendTelegramMessage(message);
     }
 
     res.json({ found: output.length > 0, slots: output });
