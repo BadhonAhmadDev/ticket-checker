@@ -5,13 +5,12 @@ const timeSlots = [
   "16:30", "17:00", "17:30"
 ];
 
+const API_BASE = 'https://ticketchecker-backend.onrender.com';
 const intervals = {};
 let sequenceTimeout = null;
 let notificationsEnabled = false;
 let runningSequential = false;
 let audioRepeatCount = 3;
-
-// All other functions and logic remain the same...
 
 function saveCheckerSettings(id) {
   const visitDate = document.getElementById(`date-${id}`)?.value || '';
@@ -69,8 +68,6 @@ function setupChecker(id, label) {
   el.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
       <h2 style="margin: 0;">${label}</h2>
-
-
       <div style="display: flex; align-items: center; gap: 6px;">
         <label style="font-size: 12px;">Status:</label>
         <select id="enabled-${id}" style="font-size: 12px;">
@@ -97,6 +94,7 @@ function setupChecker(id, label) {
     <div class="results">
       <table><thead><tr><th>Time</th><th>Availability</th></tr></thead><tbody id="tableBody-${id}"></tbody></table>
     </div>
+    <audio id="alertSound" src="https://ticketchecker-backend.onrender.com/alert-audio" preload="auto"></audio>
   `;
 
   flatpickr(`#date-${id}`, {
@@ -157,7 +155,7 @@ function setupChecker(id, label) {
     const enabled = document.getElementById(`enabled-${id}`)?.value === 'true';
     if (!visitDate || times.length === 0 || !enabled) return;
 
-    const res = await fetch('/check-tickets', {
+    const res = await fetch(`${API_BASE}/check-tickets`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visitDate, times })
@@ -208,6 +206,9 @@ function setupChecker(id, label) {
 
   intervals[id] = { checker: check, interval: null };
 }
+
+// The rest of the control logic (startAll, stopAll, runAllSequentially, etc.) remains unchanged.
+
 
 
 
