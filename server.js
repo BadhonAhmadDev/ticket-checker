@@ -19,8 +19,8 @@ const audioFilePath = path.join(__dirname, 'audio.mp3');
 
 // Telegram config
 const TELEGRAM_BOT_TOKEN = '7909147905:AAH9-pbLUfkTf-YYNj9peiFEvAbeWAAFPro';
-const TELEGRAM_CHAT_ID = '-1002706453375';
-// const TELEGRAM_CHAT_ID = '5440260132';
+// const TELEGRAM_CHAT_ID = '-1002706453375';
+const TELEGRAM_CHAT_ID = '5440260132';
 
 
 async function sendTelegramTo(chatId, text) {
