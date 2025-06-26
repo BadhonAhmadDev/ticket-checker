@@ -2,242 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ticket Checker</title>
+
+  <!-- Flatpickr Styles -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-    }
 
-    .controls {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .controls input[type="number"] {
-      width: 60px;
-      margin: 0 8px;
-    }
-
-    .side-by-side-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-      gap: 12px;
-      max-width: 100%;
-      margin: 0 auto;
-    }
-
-    .ticket-checker {
-      min-width: 300px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #fdfdfd;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      position: relative;
-      transition: box-shadow 0.2s, background-color 0.2s;
-    }
-
-    .ticket-checker.running {
-      border: 2px solid #28a745;
-      box-shadow: 0 0 10px 4px #28a745;
-      background-color: #f0fff0;
-    }
-
-    .ticket-checker.alert-highlight {
-      border-color: rgb(255, 0, 0);
-      box-shadow: 0 0 8px rgb(255, 0, 0);
-    }
-
-    .ticket-checker h2 {
-      font-size: 16px;
-      margin-top: 0;
-    }
-
-    .green-icon {
-      color: green;
-      font-weight: bold;
-    }
-
-    .red-icon {
-      color: red;
-      font-weight: bold;
-    }
-
-    .label-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin: 6px 0;
-    }
-
-    .popup-wrapper {
-      position: relative;
-      display: inline-block;
-    }
-
-    .popup-toggle {
-      padding: 4px 10px;
-      font-size: 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #f7f7f7;
-      cursor: pointer;
-    }
-
-    .popup-content {
-      display: none;
-      position: absolute;
-      background: white;
-      padding: 6px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      z-index: 100;
-      min-width: 200px;
-    }
-
-    .popup-wrapper.open .popup-content {
-      display: block;
-    }
-
-    .popup-controls {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .popup-controls button {
-      font-size: 10px;
-      padding: 2px 5px;
-    }
-
-    .thumbnail-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-      gap: 4px;
-    }
-
-    .time-thumb {
-      border: 2px solid #ccc;
-      padding: 4px;
-      font-size: 11px;
-      text-align: center;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-
-    .time-thumb.selected {
-      border-color: green;
-      background-color: #e8f8e8;
-      font-weight: bold;
-    }
-
-    .time-summary {
-      font-size: 11px;
-      margin-top: 6px;
-      color: #555;
-    }
-
-    .results {
-      margin-top: 8px;
-    }
-
-    table {
-      border-collapse: collapse;
-      font-size: 10px;
-      width: 100%;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 2px 3px;
-      text-align: center;
-    }
-
-    .import-export {
-      text-align: center;
-      margin-top: 30px;
-    }
-
-    .import-export button {
-      margin: 0 10px;
-      padding: 6px 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .manual-input {
-  background-color: #f0f8ff;
-}
-.second-input {
-  background-color: #fff5f5;
-}
-
-  </style>
+  <!-- App Styles -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="favicon.ico" />
 </head>
 <body>
-  <div class="controls">
-        <label style="margin-left: 20px;">
-  📅 Month 1:
-  <input id="month1Input" type="text" value="June" />
-</label>
 
-<label style="margin-left: 10px;">
-  📅 Month 2:
-  <input id="month2Input" type="text" value="July" />
-</label>
+  <h1>🎫 Ticket Checker</h1>
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>Checker Count: <input type="number" id="checkerCount" value="62" min="1" max="1000" /></label>
+    <label>Month 1: <input type="text" id="month1Input" placeholder="June" /></label>
+    <label>Month 2: <input type="text" id="month2Input" placeholder="July" /></label><br><br>
+
+    <label>Loop Interval (sec): <input type="number" id="globalLoop" value="10" min="1" /></label>
+    <label>🔊 Audio Repeat: <input type="number" id="audioRepeat" value="3" min="1" /></label>
+    <label><input type="checkbox" id="notifyToggle" /> Enable Notifications</label><br><br>
+
+    <!-- Start/Stop All Toggle -->
+    <button id="globalToggle">
+      <span id="toggleIcon" class="green-icon">▶</span>
+      <span id="toggleText">Start All</span>
+    </button>
+
+    <!-- Online Start/Stop Toggle -->
+    <button id="onlineStartToggle">
+      <span id="onlineToggleIcon" class="green-icon">▶</span>
+      <span id="onlineToggleText">Online Start All</span>
+    </button>
   </div>
 
+  <!-- Checkers Will Render Here -->
+  <div class="side-by-side-container"></div>
 
-  <div class="controls">
-
-
-    <label>Loop Interval (s): 
-      <input id="globalLoop" type="number" min="1" value="10" />
-    </label>
-
-
-    
-    <label style="margin-left: 20px;">
-      🔔 Enable Notifications:
-      <input type="checkbox" id="notifyToggle" />
-    </label>
-
-    <label style="margin-left: 20px;">
-      🔊 Audio Plays:
-      <input id="audioRepeat" type="number" min="1" value="3" style="width: 50px;" />
-    </label>
-
-    <label style="margin-left: 20px;">
-      #️⃣ Checker Count:
-      <input id="checkerCount" type="number" min="1" max="1000" value="62" style="width: 60px;" />
-    </label>
-
-    
-
-  </div>
-  <div class="controls">
-    <button id="globalToggle" style="margin-left: 20px;">
-  <span id="toggleIcon" class="green-icon">▶</span> <span id="toggleText">Start All</span>
-</button>
-</div>
-
-  <div class="side-by-side-container">
-    <!-- Checkers rendered dynamically by script.js -->
-  </div>
-
+  <!-- Import / Export / Hard Reset -->
   <div class="import-export">
     <button id="exportConfig">📤 Export Settings</button>
-    <input type="file" id="importConfig" accept="application/json" style="display: none;" />
     <button id="importConfigBtn">📥 Import Settings</button>
+    <input type="file" id="importConfig" accept=".json" style="display: none;" />
+
+    <!-- ✅ Hard Reset Button -->
+    <button id="hardResetBtn" style="margin-top: 15px;">
+      🗑 Hard Reset All Settings
+    </button>
   </div>
 
-  <audio id="alertSound" src="/alert-audio" preload="auto"></audio>
-
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="script.js"></script>
-  <audio id="alertSound" src="https://ticketchecker-backend.onrender.com/alert-audio" preload="auto"></audio>
+
+  <!-- App Modules -->
+  <script type="module" src="./modules/main.js"></script>
+  <script type="module" src="./modules/onlineControl_sequential.js"></script> <!-- ✅ Added this line -->
+
 </body>
 </html>

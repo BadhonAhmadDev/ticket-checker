@@ -1,141 +1,93 @@
-// server.js
 import express from 'express';
 import axios from 'axios';
 import chalk from 'chalk';
-import notifier from 'node-notifier';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
-const port = 3000;
-
-// Path helpers
+const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const audioFilePath = path.join(__dirname, 'audio.mp3');
 
-// Telegram config
-const TELEGRAM_BOT_TOKEN = '7909147905:AAH9-pbLUfkTf-YYNj9peiFEvAbeWAAFPro';
-// const TELEGRAM_CHAT_ID = '-1002706453375';
-const TELEGRAM_CHAT_ID = '5440260132';
-
-
-async function sendTelegramTo(chatId, text) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  try {
-    await axios.post(url, { chat_id: chatId, text });
-  } catch (error) {
-    console.error(`❌ Failed to message ${chatId}:`, error.response?.data || error.message);
-  }
-}
-
-function sendTelegramAlertToGroup(text) {
-  return sendTelegramTo(TELEGRAM_CHAT_ID, text);
-}
-
-let autoCheckInterval = null;
-
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🎵 Secure route to serve audio
-app.get('/alert-audio', (req, res) => {
-  if (!fs.existsSync(audioFilePath)) {
-    return res.status(404).send('Audio file not found');
-  }
-  const stat = fs.statSync(audioFilePath);
-  res.writeHead(200, {
-    'Content-Type': 'audio/mpeg',
-    'Content-Length': stat.size,
-    'Accept-Ranges': 'bytes',
-  });
-  fs.createReadStream(audioFilePath).pipe(res);
-});
+// ========== TELEGRAM SETUP ==========
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // Optional: set to your group/chat id
 
-const headers = {
-  'User-Agent': 'Mozilla/5.0',
-  'Content-Type': 'application/json',
-  'Accept': 'application/json, text/plain',
+const sendTelegramAlertToGroup = async (message) => {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  await axios.post(url, {
+    chat_id: TELEGRAM_CHAT_ID,
+    text: message,
+    parse_mode: 'Markdown'
+  });
 };
 
-// 🧠 Manual check route (triggered from frontend)
-app.post('/check-tickets', async (req, res) => {
-  const { visitDate, times } = req.body;
-  const bookingAvailableId = 640;
-  const visitorNum = 2;
-  try {
-    const bookingRes = await axios.get('https://tickets.museivaticani.va/api/search/result', {
-      params: {
-        lang: 'en', visitorNum, visitDate, area: 1, who: 2, page: 0
-      },
-      headers,
-    });
-
-    const bookings = bookingRes.data.visits;
-    let output = [];
-
-    for (const visit of bookings) {
-      if (visit.id === bookingAvailableId && visit.availability === 'AVAILABLE') {
-        const ticketRes = await axios.get('https://tickets.museivaticani.va/api/visit/timeavail', {
-          params: {
-            lang: 'en', visitLang: '', visitTypeId: bookingAvailableId, visitorNum, visitDate
-          },
-          headers,
-        });
-
-        const timetable = ticketRes.data.timetable;
-        for (const slot of timetable) {
-          if ((slot.availability === 'AVAILABLE' || slot.availability === 'LOW_AVAILABILITY') && times.includes(slot.time)) {
-            output.push({ time: slot.time, availability: slot.availability });
-            notifier.notify({ title: 'Tickets Available', message: `${slot.time} - ${slot.availability}` });
-          }
-        }
-      }
-    }
-
-    if (output.length > 0) {
-      const message = `🎫 Tickets found for ${visitDate} at times: ${output.map(s => s.time).join(', ')}`;
-      await sendTelegramAlertToGroup(message);
-    }
-
-    res.json({ found: output.length > 0, slots: output });
-  } catch (error) {
-    console.error('Error:', error.message);
-    res.status(500).json({ error: 'Failed to check tickets' });
+// ========== STATIC AUDIO ==========
+app.get('/alert-audio', (req, res) => {
+  const audioPath = path.join(__dirname, 'audio.mp3');
+  if (fs.existsSync(audioPath)) {
+    res.setHeader('Content-Type', 'audio/mpeg');
+    fs.createReadStream(audioPath).pipe(res);
+  } else {
+    res.status(404).send('Audio file not found.');
   }
 });
 
-// ✅ Start auto-checking route
-app.post('/start-auto-check', async (req, res) => {
+// ========== BACKEND AUTO CHECK LOOP ==========
+let autoCheckInterval = null;
+let autoCheckConfig = [];
+
+app.post('/start-auto-check', (req, res) => {
   if (autoCheckInterval) return res.json({ status: 'Already running' });
 
-  const { visitDate, times } = req.body;
-  if (!visitDate || !Array.isArray(times)) {
-    return res.status(400).json({ error: 'Missing visitDate or times' });
+  const { checkers, loopInterval } = req.body;
+  if (!Array.isArray(checkers) || checkers.length === 0) {
+    return res.status(400).json({ error: 'Missing or invalid checker list' });
   }
 
-  const runCheck = async () => {
-    console.log(`🔁 Auto check running for ${visitDate}...`);
-    try {
-      const bookingRes = await axios.get('https://tickets.museivaticani.va/api/search/result', {
-        params: {
-          lang: 'en', visitorNum: 2, visitDate, area: 1, who: 2, page: 0
-        }, headers
-      });
+  autoCheckConfig = checkers;
+  const delay = loopInterval ? parseInt(loopInterval, 10) * 1000 : 60000;
 
-      const bookings = bookingRes.data.visits;
-      const visit = bookings.find(v => v.id === 640 && v.availability === 'AVAILABLE');
+  const runBackendCheck = async () => {
+    console.log(chalk.blue(`🔁 Running backend auto-check (${checkers.length} checkers)...`));
 
-      if (visit) {
+    for (const { visitDate, times } of autoCheckConfig) {
+      try {
+        const bookingRes = await axios.get('https://tickets.museivaticani.va/api/search/result', {
+          params: {
+            lang: 'en',
+            visitorNum: 2,
+            visitDate,
+            area: 1,
+            who: 2,
+            page: 0
+          },
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+
+        const visit = bookingRes.data.visits.find(v => v.id === 640 && v.availability === 'AVAILABLE');
+        if (!visit) continue;
+
         const ticketRes = await axios.get('https://tickets.museivaticani.va/api/visit/timeavail', {
           params: {
-            lang: 'en', visitLang: '', visitTypeId: 640, visitorNum: 2, visitDate
-          }, headers
+            lang: 'en',
+            visitLang: '',
+            visitTypeId: 640,
+            visitorNum: 2,
+            visitDate
+          },
+          headers: { 'User-Agent': 'Mozilla/5.0' }
         });
 
         const timetable = ticketRes.data.timetable;
@@ -145,32 +97,35 @@ app.post('/start-auto-check', async (req, res) => {
         );
 
         if (available.length > 0) {
-          const message = `🎫 Online Check: Tickets found for ${visitDate}\n${available.map(s => `${s.time}: ${s.availability}`).join('\n')}`;
+          const message = `🎫 *Tickets Available!*\n📅 ${visitDate}\n` +
+            available.map(s => `🕒 ${s.time}: ${s.availability}`).join('\n');
+
           await sendTelegramAlertToGroup(message);
+          console.log(chalk.green("📬 Telegram alert sent."));
         }
+      } catch (err) {
+        console.error(chalk.red('❌ Backend checker error:'), err.message);
       }
-    } catch (e) {
-      console.error('❌ Auto-check error:', e.message);
     }
   };
 
-  runCheck();
-  autoCheckInterval = setInterval(runCheck, 60_000);
-  res.json({ status: 'Auto check started' });
+  runBackendCheck(); // Run immediately once
+  autoCheckInterval = setInterval(runBackendCheck, delay);
+  res.json({ status: 'Backend auto-check started' });
 });
 
-// 🔴 Stop auto-checking route
 app.post('/stop-auto-check', (req, res) => {
   if (autoCheckInterval) {
     clearInterval(autoCheckInterval);
     autoCheckInterval = null;
-    console.log('🛑 Auto check stopped');
+    autoCheckConfig = [];
+    console.log(chalk.yellow('🛑 Backend auto-check stopped'));
     return res.json({ status: 'Auto check stopped' });
   }
   res.json({ status: 'No active check to stop' });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(chalk.green(`🚀 Server running at http://localhost:${port}`));
+// ========== SERVER START ==========
+app.listen(PORT, () => {
+  console.log(chalk.cyan(`🚀 Server running on http://localhost:${PORT}`));
 });

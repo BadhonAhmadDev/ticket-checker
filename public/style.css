@@ -1,0 +1,204 @@
+/* Base layout */
+body {
+  font-family: sans-serif;
+  margin: 20px;
+}
+
+/* Control panels */
+.controls {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.controls input[type="number"],
+.controls input[type="text"] {
+  margin-left: 8px;
+}
+
+.controls label {
+  margin-left: 10px;
+}
+
+/* Button styling */
+button {
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #f7f7f7;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Checker layout */
+.side-by-side-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 12px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.ticket-checker {
+  min-width: 300px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fdfdfd;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+/* ✅ Highlighted checker during active loop */
+.ticket-checker.running {
+  border: 2px solid #28a745;
+  box-shadow: 0 0 10px 4px #28a745;
+  background-color: #f0fff0;
+}
+
+/* 🔔 Highlight when tickets are found */
+.ticket-checker.alert-highlight {
+  border-color: red;
+  box-shadow: 0 0 8px red;
+}
+
+.ticket-checker h2 {
+  font-size: 16px;
+  margin-top: 0;
+}
+
+/* Colors */
+.green-icon {
+  color: green;
+  font-weight: bold;
+}
+
+.red-icon {
+  color: red;
+  font-weight: bold;
+}
+
+/* Popup for time slots */
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.popup-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.popup-toggle {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f7f7f7;
+  cursor: pointer;
+}
+
+.popup-content {
+  display: none;
+  position: absolute;
+  background: white;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  min-width: 200px;
+}
+
+.popup-wrapper.open .popup-content {
+  display: block;
+}
+
+.popup-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.popup-controls button {
+  font-size: 10px;
+  padding: 2px 5px;
+}
+
+/* Time grid */
+.thumbnail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 4px;
+}
+
+.time-thumb {
+  border: 2px solid #ccc;
+  padding: 4px;
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.time-thumb.selected {
+  border-color: green;
+  background-color: #e8f8e8;
+  font-weight: bold;
+}
+
+.time-summary {
+  font-size: 11px;
+  margin-top: 6px;
+  color: #555;
+}
+
+/* Results table */
+.results {
+  margin-top: 8px;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 10px;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 2px 3px;
+  text-align: center;
+}
+
+/* Import/export & reset */
+.import-export {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.import-export button {
+  margin: 0 10px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#hardResetButton {
+  color: red;
+}
+
+/* Checker themes */
+.manual-input {
+  background-color: #f0f8ff;
+}
+
+.second-input {
+  background-color: #fff5f5;
+}
