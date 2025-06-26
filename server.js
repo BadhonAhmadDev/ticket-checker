@@ -12,25 +12,32 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ========== TELEGRAM SETUP ==========
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // Optional: set to your group/chat id
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const sendTelegramAlertToGroup = async (message) => {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  await axios.post(url, {
-    chat_id: TELEGRAM_CHAT_ID,
-    text: message,
-    parse_mode: 'Markdown'
-  });
+  try {
+    await axios.post(url, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: 'Markdown',
+    });
+    console.log(chalk.green("📬 Telegram alert sent."));
+  } catch (err) {
+    console.error(chalk.red("❌ Failed to send Telegram message:"), err.message);
+  }
 };
 
 // ========== STATIC AUDIO ==========
@@ -71,9 +78,9 @@ app.post('/start-auto-check', (req, res) => {
             visitDate,
             area: 1,
             who: 2,
-            page: 0
+            page: 0,
           },
-          headers: { 'User-Agent': 'Mozilla/5.0' }
+          headers: { 'User-Agent': 'Mozilla/5.0' },
         });
 
         const visit = bookingRes.data.visits.find(v => v.id === 640 && v.availability === 'AVAILABLE');
@@ -85,9 +92,9 @@ app.post('/start-auto-check', (req, res) => {
             visitLang: '',
             visitTypeId: 640,
             visitorNum: 2,
-            visitDate
+            visitDate,
           },
-          headers: { 'User-Agent': 'Mozilla/5.0' }
+          headers: { 'User-Agent': 'Mozilla/5.0' },
         });
 
         const timetable = ticketRes.data.timetable;
@@ -101,7 +108,6 @@ app.post('/start-auto-check', (req, res) => {
             available.map(s => `🕒 ${s.time}: ${s.availability}`).join('\n');
 
           await sendTelegramAlertToGroup(message);
-          console.log(chalk.green("📬 Telegram alert sent."));
         }
       } catch (err) {
         console.error(chalk.red('❌ Backend checker error:'), err.message);
@@ -125,7 +131,40 @@ app.post('/stop-auto-check', (req, res) => {
   res.json({ status: 'No active check to stop' });
 });
 
-// ========== SERVER START ==========
+// ========== NEW: CHECK TICKETS FOR FRONTEND ==========
+app.post('/check-tickets', async (req, res) => {
+  const { visitDate, times } = req.body;
+
+  if (!visitDate || !Array.isArray(times) || times.length === 0) {
+    return res.status(400).json({ error: 'Invalid request: visitDate and times are required' });
+  }
+
+  try {
+    const ticketRes = await axios.get('https://tickets.museivaticani.va/api/visit/timeavail', {
+      params: {
+        lang: 'en',
+        visitLang: '',
+        visitTypeId: 640,
+        visitorNum: 2,
+        visitDate,
+      },
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+
+    const timetable = ticketRes.data.timetable || [];
+    const availableSlots = timetable.filter(slot =>
+      times.includes(slot.time) &&
+      (slot.availability === 'AVAILABLE' || slot.availability === 'LOW_AVAILABILITY')
+    );
+
+    res.json({ slots: availableSlots });
+  } catch (err) {
+    console.error('❌ /check-tickets error:', err.message);
+    res.status(500).json({ error: 'Failed to check availability' });
+  }
+});
+
+// ========== START SERVER ==========
 app.listen(PORT, () => {
   console.log(chalk.cyan(`🚀 Server running on http://localhost:${PORT}`));
 });
