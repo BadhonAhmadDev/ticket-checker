@@ -16,12 +16,12 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middleware
+// 🔐 Enable CORS so Firebase frontend can access backend
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ========== TELEGRAM SETUP ==========
+// 📩 Telegram Setup
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
@@ -40,7 +40,7 @@ const sendTelegramAlertToGroup = async (message) => {
   }
 };
 
-// ========== STATIC AUDIO ==========
+// 🔊 Serve audio
 app.get('/alert-audio', (req, res) => {
   const audioPath = path.join(__dirname, 'audio.mp3');
   if (fs.existsSync(audioPath)) {
@@ -51,7 +51,7 @@ app.get('/alert-audio', (req, res) => {
   }
 });
 
-// ========== BACKEND AUTO CHECK LOOP ==========
+// 🔁 Auto-check loop
 let autoCheckInterval = null;
 let autoCheckConfig = [];
 
@@ -115,7 +115,7 @@ app.post('/start-auto-check', (req, res) => {
     }
   };
 
-  runBackendCheck(); // Run immediately once
+  runBackendCheck();
   autoCheckInterval = setInterval(runBackendCheck, delay);
   res.json({ status: 'Backend auto-check started' });
 });
@@ -131,7 +131,7 @@ app.post('/stop-auto-check', (req, res) => {
   res.json({ status: 'No active check to stop' });
 });
 
-// ========== NEW: CHECK TICKETS FOR FRONTEND ==========
+// ✅ /check-tickets route (used by frontend)
 app.post('/check-tickets', async (req, res) => {
   const { visitDate, times } = req.body;
 
@@ -164,7 +164,7 @@ app.post('/check-tickets', async (req, res) => {
   }
 });
 
-// ========== START SERVER ==========
+// ✅ Start server
 app.listen(PORT, () => {
-  console.log(chalk.cyan(`🚀 Server running on http://localhost:${PORT}`));
+  console.log(chalk.cyan(`🚀 Server running on port ${PORT}`));
 });
