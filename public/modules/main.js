@@ -6,7 +6,7 @@ import {
   setAudioRepeat,
   setNotifications
 } from './constants.js';
-import { initOnlineToggle } from './onlineControl_sequential.js'; // ✅ Import added here
+import { initOnlineToggle } from './onlineControl_sequential.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.querySelector('.side-by-side-container');
@@ -14,16 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const month1Input = document.getElementById('month1Input');
   const month2Input = document.getElementById('month2Input');
 
+  // Load stored settings
   const storedCount = parseInt(localStorage.getItem('checkerCount'), 10) || 62;
-  const storedMonth1 = localStorage.getItem('month1Name');
-  const storedMonth2 = localStorage.getItem('month2Name');
+  const storedMonth1 = localStorage.getItem('month1Name') || '';
+  const storedMonth2 = localStorage.getItem('month2Name') || '';
   const storedLoop = localStorage.getItem('globalLoop');
   const storedRepeat = localStorage.getItem('audioRepeat');
   const storedNotify = localStorage.getItem('notifyToggle');
 
   countInput.value = storedCount;
-  if (storedMonth1) month1Input.value = storedMonth1;
-  if (storedMonth2) month2Input.value = storedMonth2;
+  month1Input.value = storedMonth1;
+  month2Input.value = storedMonth2;
   if (storedLoop) document.getElementById('globalLoop').value = storedLoop;
   if (storedRepeat) {
     document.getElementById('audioRepeat').value = storedRepeat;
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setNotifications(true);
   }
 
+  // Checker Generator
   const createCheckers = (count) => {
     stopAll();
     container.innerHTML = '';
@@ -56,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   createCheckers(storedCount);
 
+  // Count change
   countInput.addEventListener('change', () => {
     const newCount = Math.max(1, Math.min(parseInt(countInput.value, 10) || 1, 1000));
     countInput.value = newCount;
@@ -63,15 +66,16 @@ document.addEventListener('DOMContentLoaded', () => {
     createCheckers(newCount);
   });
 
+  // Month name changes
   ['month1Input', 'month2Input'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
       localStorage.setItem('month1Name', month1Input.value);
       localStorage.setItem('month2Name', month2Input.value);
-      const currentCount = parseInt(countInput.value, 10) || 62;
-      createCheckers(currentCount);
+      createCheckers(parseInt(countInput.value, 10) || 62);
     });
   });
 
+  // Global start/stop button
   const toggleBtn = document.getElementById('globalToggle');
   const toggleIcon = document.getElementById('toggleIcon');
   const toggleText = document.getElementById('toggleText');
@@ -90,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Notification toggle
   document.getElementById('notifyToggle').addEventListener('change', e => {
     const val = e.target.checked;
     setNotifications(val);
@@ -99,17 +104,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Audio repeat count
   document.getElementById('audioRepeat').addEventListener('change', e => {
     const val = Math.max(1, parseInt(e.target.value, 10) || 3);
     setAudioRepeat(val);
     localStorage.setItem('audioRepeat', val);
   });
 
+  // Loop interval setting
   document.getElementById('globalLoop').addEventListener('change', e => {
     localStorage.setItem('globalLoop', e.target.value);
   });
 
-  // 🔁 EXPORT SETTINGS
+  // Export settings
   document.getElementById('exportConfig')?.addEventListener('click', () => {
     const count = parseInt(localStorage.getItem('checkerCount'), 10) || 1;
     const config = {
@@ -134,12 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
     link.click();
   });
 
-  // 🔁 TRIGGER IMPORT
+  // Trigger file input
   document.getElementById('importConfigBtn')?.addEventListener('click', () => {
     document.getElementById('importConfig').click();
   });
 
-  // 🔁 IMPORT SETTINGS
+  // Import config file
   document.getElementById('importConfig')?.addEventListener('change', event => {
     const file = event.target.files[0];
     if (!file) return;
@@ -156,10 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (config.globalLoop) localStorage.setItem('globalLoop', config.globalLoop);
           if (config.audioRepeat) localStorage.setItem('audioRepeat', config.audioRepeat);
-          if (typeof config.notifyToggle === 'boolean') {
-            localStorage.setItem('notifyToggle', config.notifyToggle);
-          }
-
+          if ('notifyToggle' in config) localStorage.setItem('notifyToggle', config.notifyToggle);
           if (config.month1Name) localStorage.setItem('month1Name', config.month1Name);
           if (config.month2Name) localStorage.setItem('month2Name', config.month2Name);
 
@@ -175,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.readAsText(file);
   });
 
-  // 🗑 HARD RESET
+  // Hard reset
   document.getElementById('hardResetBtn')?.addEventListener('click', () => {
     if (confirm('⚠️ This will erase ALL settings and reload. Proceed?')) {
       localStorage.clear();
@@ -184,6 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ✅ Initialize online toggle functionality
+  // ✅ Enable sequential online toggle
   initOnlineToggle();
 });
