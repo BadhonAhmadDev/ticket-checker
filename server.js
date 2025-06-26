@@ -9,15 +9,15 @@ import { fileURLToPath } from 'url';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ESModule __dirname shim
+// Resolve __dirname for ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middleware
+// Enable CORS for all routes
 app.use(cors());
 app.use(bodyParser.json());
 
-// 🎫 POST /check-tickets
+// ✅ Route: /check-tickets
 app.post('/check-tickets', async (req, res) => {
   const { visitDate, times } = req.body;
 
@@ -51,19 +51,21 @@ app.post('/check-tickets', async (req, res) => {
   }
 });
 
-// 🔊 GET /alert-audio (serves audio.mp3 from root folder)
+// ✅ Route: /alert-audio (fix for ORB issue)
 app.get('/alert-audio', (req, res) => {
-  const audioPath = path.join(__dirname, 'audio.mp3'); // ✅ audio.mp3 must be in root
+  const audioPath = path.join(__dirname, 'audio.mp3'); // File must be in root folder
 
   if (fs.existsSync(audioPath)) {
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Access-Control-Allow-Origin', '*'); // ✅ Required for ORB
+    res.setHeader('Content-Type', 'audio/mpeg');       // ✅ Ensures correct MIME
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // ✅ ORB fix
     fs.createReadStream(audioPath).pipe(res);
   } else {
     res.status(404).send('Audio file not found.');
   }
 });
 
-// 🚀 Start server
+// ✅ Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
